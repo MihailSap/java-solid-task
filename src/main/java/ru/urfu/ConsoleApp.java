@@ -1,17 +1,15 @@
 package ru.urfu;
 
-import com.itextpdf.text.DocumentException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.urfu.document.Document;
 import ru.urfu.document.DocumentService;
-import ru.urfu.utils.PdfExporter;
+import ru.urfu.utils.ExportService;
+import ru.urfu.utils.ImportService;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -23,15 +21,20 @@ import java.util.Scanner;
 @SpringBootApplication
 public class ConsoleApp implements CommandLineRunner {
 
-    public static final Path OUTPUT_DIR = Path.of(System.getProperty("user.home"), "lessonSOLID");
+    private final ImportService importService;
+
+    private final ExportService exportService;
 
     private final DocumentService documentService;
 
     private final Scanner scanner = new Scanner(System.in);
 
     @Autowired
-    public ConsoleApp(DocumentService documentService) {
+    public ConsoleApp(
+            ImportService importService, DocumentService documentService, ExportService exportService) {
+        this.importService = importService;
         this.documentService = documentService;
+        this.exportService = exportService;
     }
 
     /**
@@ -82,9 +85,7 @@ public class ConsoleApp implements CommandLineRunner {
             if (line.isEmpty()) break; // окончание ввода
             content.append(line).append(System.lineSeparator());
         }
-
-        documentService.createDocument(name, content.toString());
-
+        documentService.addDocument(new Document(name, content.toString()));
         System.out.println("Документ создан и сохранён в памяти.");
     }
 
@@ -96,14 +97,15 @@ public class ConsoleApp implements CommandLineRunner {
         String path = scanner.nextLine();
 
         try {
-            documentService.importTxt(path);
+            Document document = importService.importTxt(path);
+            documentService.addDocument(document);
         } catch (IOException e) {
             System.out.println("Ошибка импорта: " + e.getMessage());
         }
     }
 
     /**
-     * Выполняет импорт документа.
+     * Выводит список загруженных документов.
      */
     private void listDocuments() {
         List<Document> documents = documentService.list();
@@ -119,7 +121,7 @@ public class ConsoleApp implements CommandLineRunner {
     }
 
     /**
-     * Выполняет импорт документа.
+     * Выполняет экспорт документа.
      */
     private void exportDocument() {
         System.out.print("Введите номер документа: ");
@@ -137,26 +139,9 @@ public class ConsoleApp implements CommandLineRunner {
         String format = scanner.nextLine().trim().toLowerCase();
 
         try {
-            Files.createDirectories(OUTPUT_DIR);
-        } catch (IOException e) {
-            System.out.println("Ошибка создания директории: " + e);
-            return;
-        }
-
-        Path outputPath = OUTPUT_DIR.resolve(document.name() + "." + format);
-
-        try {
-            switch (format) {
-                case "txt" -> Files.writeString(outputPath, document.content());
-                case "pdf" -> PdfExporter.export(outputPath.toString(), document.content());
-                default -> {
-                    System.out.println("Неверный формат");
-                    return;
-                }
-            }
-
-            System.out.println("Экспорт выполнен: " + outputPath);
-        } catch (IOException | DocumentException e) {
+            exportService.export(document, format);
+            System.out.println("Экспорт выполнен!");
+        } catch (Exception e) {
             System.out.println("Ошибка экспорта: " + e.getMessage());
         }
     }
