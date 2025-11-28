@@ -17,5 +17,10 @@ public interface Exporter {
      * @throws DocumentException   если произошла ошибка PDF генерации
      * @throws IOException если не удалось записать файл
      */
-    void export(Path outputPath, String content) throws DocumentException, IOException;
+    void export(Path outputPath, String content) throws Exception;
+
+    /**
+     * Возвращает формат экспортера
+     */
+    String getFormat();
 }

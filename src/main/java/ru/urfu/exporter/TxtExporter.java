@@ -1,8 +1,5 @@
 package ru.urfu.exporter;
 
-import com.itextpdf.text.DocumentException;
-
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -12,7 +9,12 @@ import java.nio.file.Path;
 public class TxtExporter implements Exporter {
 
     @Override
-    public void export(Path outputPath, String content) throws DocumentException, IOException {
+    public void export(Path outputPath, String content) throws Exception {
         Files.writeString(outputPath, content);
+    }
+
+    @Override
+    public String getFormat() {
+        return "txt";
     }
 }
